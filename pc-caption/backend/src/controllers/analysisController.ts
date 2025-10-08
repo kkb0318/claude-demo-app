@@ -1,13 +1,62 @@
 import { Request, Response } from 'express';
 import { AnalysisService } from '../services/analysisService.js';
+import { SimpleGoogleSheetsAgent } from '../simpleGoogleSheetsAgent.js';
+import type { AnalysisData } from '../simpleGoogleSheetsAgent.js';
 import type { Recording } from '../types/index.js';
 import logger from '../utils/logger.js';
 
 export class AnalysisController {
   private analysisService: AnalysisService;
+  private googleSheetsAgent: SimpleGoogleSheetsAgent | null = null;
 
   constructor() {
     this.analysisService = new AnalysisService();
+    this.initializeGoogleSheetsAgent();
+  }
+
+  private initializeGoogleSheetsAgent(): void {
+    const googleSheetsUrl = process.env.GOOGLE_SHEETS_URL;
+
+    if (googleSheetsUrl) {
+      try {
+        this.googleSheetsAgent = new SimpleGoogleSheetsAgent(googleSheetsUrl);
+        logger.info('Google Sheets AI Agent initialized for analysis recording');
+      } catch (error) {
+        logger.warn('Failed to initialize Google Sheets AI Agent:', error);
+      }
+    } else {
+      logger.info('Google Sheets integration disabled (missing environment variables)');
+    }
+  }
+
+  private async recordToGoogleSheets(
+    fileName: string, 
+    analysisResult: string, 
+    confidence: number = 85,
+    detectedElements: string[] = []
+  ): Promise<void> {
+    if (!this.googleSheetsAgent) return;
+
+    try {
+      const analysisData: AnalysisData = {
+        timestamp: new Date().toISOString(),
+        fileName,
+        analysisResult,
+        confidence,
+        detectedElements,
+        status: 'completed',
+        metadata: {
+          processingTime: Date.now(),
+          aiModel: 'GPT-4o-mini',
+          userId: 'api_user'
+        }
+      };
+
+      await this.googleSheetsAgent.recordAnalysisResult(analysisData);
+      logger.info(`Analysis result recorded to Google Sheets: ${fileName}`);
+    } catch (error) {
+      logger.error('Failed to record analysis to Google Sheets:', error);
+    }
   }
 
   async analyze(req: Request, res: Response): Promise<void> {
@@ -92,6 +141,22 @@ export class AnalysisController {
           report
         }
       });
+
+      // Google Sheetsに分析結果を記録（非同期）
+      if (this.googleSheetsAgent) {
+        Promise.all(
+          screenshotAnalyses.map((analysis: any, index: number) => 
+            this.recordToGoogleSheets(
+              images[index].fileName,
+              analysis.content || analysis.summary || 'Analysis completed',
+              analysis.confidence || 85,
+              analysis.detectedElements || []
+            )
+          )
+        ).catch(error => {
+          logger.error('Background Google Sheets recording failed:', error);
+        });
+      }
     } catch (error) {
       logger.error('Analysis error:', error);
       res.status(500).json({
@@ -128,6 +193,22 @@ export class AnalysisController {
           analyses
         }
       });
+
+      // Google Sheetsに分析結果を記録（非同期）
+      if (this.googleSheetsAgent) {
+        Promise.all(
+          analyses.map((analysis: any, index: number) => 
+            this.recordToGoogleSheets(
+              images[index].fileName,
+              analysis.content || analysis.summary || 'Screenshot analysis completed',
+              analysis.confidence || 85,
+              analysis.detectedElements || []
+            )
+          )
+        ).catch(error => {
+          logger.error('Background Google Sheets recording failed:', error);
+        });
+      }
     } catch (error) {
       logger.error('Screenshot analysis error:', error);
       res.status(500).json({

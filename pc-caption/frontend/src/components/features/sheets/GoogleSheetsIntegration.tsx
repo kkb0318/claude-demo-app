@@ -26,7 +26,7 @@ export const GoogleSheetsIntegration: React.FC<GoogleSheetsIntegrationProps> = (
     setMessage('');
 
     try {
-      const response = await fetch('/api/backend/sheets/record-analysis', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/sheets/record-analysis`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +57,7 @@ export const GoogleSheetsIntegration: React.FC<GoogleSheetsIntegrationProps> = (
     setMessage('');
 
     try {
-      const response = await fetch('/api/backend/sheets/info');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/sheets/info`);
       const data = await response.json();
 
       if (data.success) {

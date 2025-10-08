@@ -3,7 +3,10 @@ import cors from 'cors';
 import { config } from './config/index.js';
 import logger from './utils/logger.js';
 import analysisRoutes from './routes/analysisRoutes.js';
+// import googleSheetsRoutes from './routes/googleSheetsRoutes.js';
 import googleSheetsRoutes from './routes/googleSheetsRoutes.js';
+import googleSheetsAIRoutes from './routes/googleSheetsAIRoutes.js';
+import mcpGoogleSheetsRoutes from './routes/mcpGoogleSheetsRoutes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -20,7 +23,10 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/analysis', analysisRoutes);
+// app.use('/api/sheets', googleSheetsRoutes); // 一時的に無効化
 app.use('/api/sheets', googleSheetsRoutes);
+app.use('/api/sheets-ai', googleSheetsAIRoutes);
+app.use('/api/mcp-sheets', mcpGoogleSheetsRoutes);
 
 // Error handler (must be last)
 app.use(errorHandler);

@@ -1,0 +1,27 @@
+{
+  "name": "pc-caption-analyzer",
+  "version": "1.0.0",
+  "description": "PC screenshot and operation log analyzer with Google Sheets AI Agent integration",
+  "main": "backend/dist/index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "make dev",
+    "build": "make build",
+    "start": "make start",
+    "install": "make install"
+  },
+  "keywords": [
+    "openai",
+    "vision",
+    "multimodal",
+    "business-analysis",
+    "google-sheets",
+    "mcp",
+    "ai-agent"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}

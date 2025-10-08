@@ -5,6 +5,8 @@ import { Monitor, Brain, FileSearch, ArrowRight, Loader2, CheckCircle } from 'lu
 import { FileUploadZone } from '@/components/features/upload/FileUploadZone';
 import { FileList } from '@/components/features/upload/FileList';
 import { AnalysisResult } from '@/components/features/analysis/AnalysisResult';
+import { GoogleSheetsAI } from '@/components/features/googleSheets/GoogleSheetsAI';
+import { MCPGoogleSheets } from '@/components/features/googleSheets/MCPGoogleSheets';
 import { Button } from '@/components/common/Button';
 import { ProgressBar } from '@/components/common/ProgressBar';
 import { useAnalysis } from '@/hooks/useAnalysis';
@@ -282,7 +284,7 @@ export default function Home() {
 
         {/* Results Section */}
         {analysisResult && (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
             <AnalysisResult result={analysisResult} />
 
             <div className="mt-6 flex justify-center">
@@ -292,6 +294,12 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* Google Sheets AI Agent Section */}
+        <GoogleSheetsAI className="mb-8" />
+
+        {/* MCP Google Sheets Section */}
+        <MCPGoogleSheets className="mb-8" />
       </div>
     </main>
   );
