@@ -1,6 +1,32 @@
 module.exports = {
-  root: true,
-  parser: '@typescript-eslint/parser',
+    rules: {
+    '@typescript-eslint/explicit-function-return-type': 'off',
+    '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }],
+    '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
+    '@typescript-eslint/require-await': 'off',
+    '@typescript-eslint/unbound-method': 'off',
+    '@typescript-eslint/no-unsafe-assignment': 'off',
+    '@typescript-eslint/no-unsafe-return': 'off',
+    '@typescript-eslint/no-unsafe-argument': 'off',
+    'import/order': 'off',
+    'import/namespace': 'off',
+    'import/no-unresolved': 'off',
+    'import/no-duplicates': 'off',
+    'import/default': 'off',
+    'import/no-named-as-default': 'off',
+    'import/no-named-as-default-member': 'off'
+  },
+  overrides: [
+    {
+      files: ['src/presentation/**/*.ts'],
+      rules: {
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        'import/default': 'off',
+        'import/no-named-as-default': 'off',
+        'import/no-named-as-default-member': 'off'
+      }
+    }
+  ], parser: '@typescript-eslint/parser',
   parserOptions: {
     project: ['./tsconfig.json'],
     tsconfigRootDir: __dirname,

@@ -20,6 +20,7 @@
       "@application/*": ["application/*"],
       "@infrastructure/*": ["infrastructure/*"],
       "@interfaces/*": ["interfaces/*"],
+      "@presentation/*": ["presentation/*"],
       "@shared/*": ["shared/*"]
     }
   },

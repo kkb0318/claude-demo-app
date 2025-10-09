@@ -33,6 +33,7 @@ export default defineConfig({
       '@application': resolveFromRoot('src/application'),
       '@infrastructure': resolveFromRoot('src/infrastructure'),
       '@interfaces': resolveFromRoot('src/interfaces'),
+      '@presentation': resolveFromRoot('src/presentation'),
       '@shared': resolveFromRoot('src/shared')
     }
   }

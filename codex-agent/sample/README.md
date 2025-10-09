@@ -12,24 +12,55 @@
 
 ## 主なコマンド
 
+### Development & Testing
 - `pnpm test` — Vitest によるユニットテストとカバレッジ収集。
 - `pnpm test:watch` — ウォッチモードでのテスト実行。
 - `pnpm lint` — ESLint による静的解析。
 - `pnpm format` / `pnpm format:write` — Prettier によるフォーマット検証／修正。
 - `pnpm build` — TypeScript コンパイル。
-- `pnpm agent "<task description>"` — Codex を用いた自動コーディングエージェント体験。
-- `pnpm demo:agent` — スタブされたレスポンスでエージェントのフローを再現するローカルデモ。
-- `pnpm start -- --prompt="Write a hello world script"` — CLIからCodex呼び出しサンプルを起動。
 
-## アーキテクチャ概要
+### CLI Mode
+- `pnpm agent "<task description>"` — CLI版: Codex を用いた自動コーディングエージェント体験。
 
-- **Domain**: 値オブジェクト (`CodexPrompt`, `CodexCompletion`) が入力／出力の制約を担保。
-- **Application**: `GenerateCodexCompletionUseCase` がCodexスレッドとの対話を協調。
-- **Application / Services**: `CodingAgentRunner` がCodexを用いて計画→編集→検証ループを自動化。
-- **Infrastructure**: `CodexThreadService` と `CodexSdkClient` が Codex SDK の `startThread` / `resumeThread` API を抽象化。
-- **Infrastructure / System**: `FileSystemWorkspace` と `ShellCommandRunner` がワークスペース操作と安全なコマンド実行を提供。
-- **Interfaces**: `cli-runner` と `index.ts` がCLIエントリポイントを提供。
-- **Tests**: 各モジュール直下にユニットテストを併置し、`tests/integration` に統合テスト例を配置。
+### API Server Mode
+- `pnpm api` — REST API サーバーの起動 (ポート: 3001)
+- `pnpm api:dev` — 開発モード (ホットリロード付き)
+
+## アーキテクチャ概要 (Clean Architecture)
+
+本プロジェクトはクリーンアーキテクチャに準拠し、以下の層構造で構成されています:
+
+### Domain Layer
+- **Entities**: `CodexPrompt`, `CodexCompletion` - ビジネスルールとバリデーションを持つドメインエンティティ
+
+### Application Layer
+- **Services**: `CodingAgentRunner` - Codexを用いた計画→編集→検証ループの自動化
+- **Ports**: インターフェース定義 (Dependency Inversion Principle)
+  - `CodexThreadRunner` - Codex実行の抽象化
+  - `AgentWorkspace` - ワークスペース操作の抽象化
+  - `CommandRunner` - コマンド実行の抽象化
+
+### Infrastructure Layer
+- **Adapters**: 
+  - `CodexThreadService` - Codex SDK の実装
+  - `CodexSdkClient` - Codex SDK クライアントのラッパー
+- **System**:
+  - `FileSystemWorkspace` - ファイルシステム操作の実装
+  - `ShellCommandRunner` - 安全なシェルコマンド実行
+- **Config**: `createCodexClient` - Codex設定の初期化
+
+### Presentation Layer
+- **CLI**: `coding-agent.ts` - コマンドラインインターフェース
+- **API** (NEW):
+  - **Controllers**: `CodingAgentController` - HTTPリクエスト処理
+  - **Routes**: REST APIエンドポイント定義
+  - **Middlewares**: エラーハンドリング、バリデーション、ロギング
+  - **DTOs**: リクエスト/レスポンスのデータ転送オブジェクト
+
+### Tests
+- 各モジュール直下にユニットテストを併置
+- API統合テストを `presentation/api/*.spec.ts` に配置
+- カバレッジ目標: Statements 90%, Branches 85%, Functions 90%
 
 ## 実行例
 
@@ -46,22 +77,96 @@ pnpm start -- --prompt="Continue the investigation" --thread=<thread-id>
 - 公式Codex SDKの型定義をそのまま使用し、`CodexSdkInterface` でアプリケーション層と接続しています。
 - CLIはエラー発生時にexit code `1` を返し、標準エラー出力へ詳細を表示します。
 
-## Coding Agent モードの使い方
+## 使い方
 
-`CodingAgentRunner` は以下のステップを自動で繰り返し、`finish` アクションが返るまで継続します。
+### 1. CLI Mode - Coding Agent
 
-1. タスク説明、ファイルリスト、過去のやり取りをCodexへ提示。
-2. Codexから返却されたJSONアクションを安全に解析し、ファイル編集・許可コマンド実行・ログ出力を実施。
-3. 実行結果や標準出力をフィードバックとして再びCodexに渡し、次のアクションを取得。
+`CodingAgentRunner` は以下のステップを自動で繰り返し、`finish` アクションが返るまで継続します:
 
-実行例:
+1. タスク説明、ファイルリスト、過去のやり取りをCodexへ提示
+2. Codexから返却されたJSONアクションを安全に解析し、ファイル編集・許可コマンド実行・ログ出力を実施
+3. 実行結果や標準出力をフィードバックとして再びCodexに渡し、次のアクションを取得
 
 ```fish
-pnpm agent "Add input validation to the register CLI"
+pnpm agent "Create a TODO app with React and TypeScript"
 ```
 
-デフォルトで8イテレーションまで繰り返し、`AGENT_MAX_ITERATIONS` 環境変数で上限を調整できます。実行ログやコマンド結果は標準出力に逐次表示されます。
+デフォルトで8イテレーションまで繰り返します。実行ログやコマンド結果は標準出力に逐次表示されます。
 
-### オフラインデモ (`pnpm demo:agent`)
+### 2. API Server Mode (NEW)
 
-Codex API キーがなくても、`pnpm demo:agent` を実行すると、スタブした Codex 応答を使ったデモワークフローを再生できます。デモでは `demo-workspace/src/greet.ts` を生成し、「興奮フラグ」を追加する 2 イテレーションのプランを実行します。各イテレーションのプロンプト／レスポンス、擬似コマンド結果、最終的なファイル内容がコンソールに表示されるため、`CodingAgentRunner` の挙動を安全に確認できます。
+REST APIとして起動し、HTTPリクエスト経由でアプリ生成を実行できます。
+
+#### サーバー起動
+
+```fish
+# 通常起動
+pnpm api
+
+# 開発モード (ホットリロード)
+pnpm api:dev
+```
+
+サーバーは `http://localhost:3001` で起動します。
+
+#### API Endpoints
+
+##### Health Check
+```bash
+curl http://localhost:3001/api/health
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Service is healthy",
+  "timestamp": "2025-10-09T14:54:16.927Z"
+}
+```
+
+##### Generate Application
+```bash
+curl -X POST http://localhost:3001/api/generate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "prompt": "Create a calculator app with React",
+    "maxIterations": 8
+  }'
+```
+
+**Request Body:**
+```typescript
+{
+  prompt: string;          // Required: 1-4000文字のタスク説明
+  maxIterations?: number;  // Optional: 最大イテレーション数 (デフォルト: 8)
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "message": "Application generated successfully",
+  "workspaceId": "/tmp/coding-agent-demo-abc123",
+  "summary": "Created a calculator app with React and TypeScript",
+  "iterations": 5
+}
+```
+
+**Response (Error):**
+```json
+{
+  "error": "Validation Error",
+  "message": "Prompt is required",
+  "statusCode": 400
+}
+```
+
+#### API機能
+
+- ✅ **バリデーション**: Zodスキーマによるリクエスト検証
+- ✅ **エラーハンドリング**: 統一されたエラーレスポンス
+- ✅ **セキュリティ**: Helmet, CORS による保護
+- ✅ **ロギング**: リクエストの自動ログ出力
+- ✅ **Clean Architecture**: プレゼンテーション層として実装
