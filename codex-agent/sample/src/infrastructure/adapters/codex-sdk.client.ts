@@ -9,7 +9,8 @@ import {
 import type { CodexSdkInterface, CodexSdkThread } from './codex-sdk.interface';
 
 class ThreadWrapper implements CodexSdkThread {
-  constructor(private readonly thread: CodexThread) {}
+
+  constructor(private readonly thread: CodexThread) { }
 
   get id(): string | null {
     return this.thread.id;
@@ -21,7 +22,7 @@ class ThreadWrapper implements CodexSdkThread {
 }
 
 export class CodexSdkClient implements CodexSdkInterface {
-  constructor(private readonly codex: Codex = new Codex()) {}
+  constructor(private readonly codex: Codex = new Codex()) { }
 
   startThread(options?: ThreadOptions): CodexSdkThread {
     return new ThreadWrapper(this.codex.startThread(options));

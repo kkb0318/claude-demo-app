@@ -1,24 +1,18 @@
-import type { Usage } from '@openai/codex-sdk';
-
 import { CodexCompletion } from '@domain/entities/codex-completion';
-import { CodexPrompt } from '@domain/entities/codex-prompt';
+import type { CodexPrompt } from '@domain/entities/codex-prompt';
+import type {
+  CodexThreadRunner,
+  CodexThreadResult,
+  RunPromptOptions
+} from '@application/ports/codex-thread-runner.port';
 
 import type { CodexSdkInterface } from './codex-sdk.interface';
 
-export interface RunPromptOptions {
-  threadId?: string;
-}
-
-export interface CodexThreadResult {
-  completion: CodexCompletion;
-  threadId: string | null;
-  usage: Usage | null;
-}
-
-export interface CodexThreadRunner {
-  runPrompt(prompt: CodexPrompt, options?: RunPromptOptions): Promise<CodexThreadResult>;
-}
-
+/**
+ * Implementation of CodexThreadRunner port using the Codex SDK.
+ * This adapter translates between the application's port interface
+ * and the external Codex SDK.
+ */
 export class CodexThreadService implements CodexThreadRunner {
   constructor(private readonly sdk: CodexSdkInterface) {}
 

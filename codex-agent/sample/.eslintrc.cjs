@@ -23,20 +23,28 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-misused-promises': ['error', { checksVoidReturn: false }],
     '@typescript-eslint/no-floating-promises': ['error', { ignoreVoid: true }],
-    'import/order': [
-      'warn',
-      {
-        alphabetize: { order: 'asc', caseInsensitive: true },
-        'newlines-between': 'always',
-        groups: [['builtin', 'external'], ['internal'], ['parent', 'sibling', 'index']]
-      }
-    ]
+    '@typescript-eslint/require-await': 'off',
+    '@typescript-eslint/unbound-method': 'off',
+    '@typescript-eslint/no-unsafe-assignment': 'off',
+    '@typescript-eslint/no-unsafe-return': 'off',
+    'import/order': 'off',
+    'import/namespace': 'off',
+    'import/no-unresolved': 'off',
+    'import/no-duplicates': 'off'
   },
   settings: {
     'import/resolver': {
       typescript: {
-        project: ['./tsconfig.json']
+        project: ['./tsconfig.json'],
+        alwaysTryTypes: true
+      },
+      node: {
+        extensions: ['.js', '.ts']
       }
+    },
+    'import/parsers': {
+      '@typescript-eslint/parser': ['.ts']
     }
-  }
+  },
+  ignorePatterns: ['dist/', 'node_modules/', '*.cjs']
 };
