@@ -1,0 +1,45 @@
+{
+  "name": "@codex-agent/sample-prototype",
+  "version": "0.1.0",
+  "description": "Prototype project demonstrating codex sdk usage following INSTRUCTION.md.",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "codex",
+    "sdk",
+    "typescript",
+    "clean-architecture"
+  ],
+  "scripts": {
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --check .",
+    "format:write": "prettier --write .",
+  "test": "vitest run --coverage",
+    "test:watch": "vitest watch",
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit",
+    "start": "tsx src/interfaces/cli/index.ts"
+  },
+  "dependencies": {
+  "@openai/codex-sdk": "^0.45.0",
+    "dotenv": "^16.4.5",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.5",
+    "@typescript-eslint/eslint-plugin": "^6.9.1",
+    "@typescript-eslint/parser": "^6.9.1",
+    "@vitest/coverage-v8": "^1.2.1",
+    "eslint": "^8.54.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.29.0",
+    "prettier": "^3.1.0",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3",
+    "vitest": "^1.2.1"
+  },
+  "engines": {
+    "node": ">=18.17.0",
+    "pnpm": ">=8.0.0"
+  }
+}
