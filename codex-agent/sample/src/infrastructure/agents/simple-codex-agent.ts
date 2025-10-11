@@ -18,6 +18,34 @@ export class SimpleCodexAgent implements CodeGenerationAgent {
   constructor(private readonly codex: Codex) {}
 
   /**
+   * ユーザータスクをビルド・検証を含む包括的なプロンプトに拡張
+   * 
+   * @param task - ユーザーからの元のタスク指示
+   * @returns ビルドと検証を含む拡張されたタスクプロンプト
+   */
+  private buildEnhancedTaskPrompt(task: string): string {
+    return `${task}
+
+**IMPORTANT**: Modify the existing \`src/app/page.tsx\` file directly. Do NOT create new route pages like \`src/app/todo/page.tsx\` or \`src/app/calculator/page.tsx\`. Replace the entire content of \`src/app/page.tsx\` with your implementation.
+
+After implementing the requested features, please ensure the application works correctly by:
+
+1. **Run type checking**: Execute \`npm run build\` or \`npm run typecheck\` to verify there are no TypeScript errors
+2. **Run linting**: Execute \`npm run lint\` to ensure code quality standards are met
+3. **Fix any errors**: If there are build, type, or lint errors, fix them immediately
+4. **Verify the build succeeds**: Make sure the application builds without errors
+
+Requirements:
+- Modify \`src/app/page.tsx\` directly (do not create new route pages)
+- All TypeScript types must be correct
+- No build errors should remain
+- Code should follow the project's linting rules
+- The application should be production-ready
+
+Please complete all steps including verification and fixing any issues found.`;
+  }
+
+  /**
    * アプリケーション生成タスクを実行
    * 
    * @param task - ユーザーからのタスク指示（自然言語）
@@ -36,8 +64,11 @@ export class SimpleCodexAgent implements CodeGenerationAgent {
     console.log(`📝 Task: ${task}\n`);
 
     try {
+      // ビルドと検証を含む包括的な指示を作成
+      const enhancedTask = this.buildEnhancedTaskPrompt(task);
+      
       // Codexに自然言語で指示（JSON schema不要）
-      const result = await thread.run(task);
+      const result = await thread.run(enhancedTask);
 
       // 実行結果を表示
       console.log('\n✅ Codex execution completed');

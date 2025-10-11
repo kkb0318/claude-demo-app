@@ -63,7 +63,13 @@ describe('SimpleCodexAgent', () => {
 
       const result = await agent.generateApp(task, workspaceDir);
 
-      expect(mockThread.run).toHaveBeenCalledWith(task);
+      // タスクが拡張されて渡されることを確認（元のタスクを含む）
+      expect(mockThread.run).toHaveBeenCalledTimes(1);
+      const calledWithTask = mockThread.run.mock.calls[0][0];
+      expect(calledWithTask).toContain(task);
+      expect(calledWithTask).toContain('npm run build');
+      expect(calledWithTask).toContain('typecheck');
+      
       expect(result).toEqual({
         success: true,
         summary: 'Calculator app created with Next.js',
