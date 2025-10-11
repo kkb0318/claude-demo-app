@@ -14,7 +14,7 @@ export const errorHandler = (
 ): void => {
   console.error('Error occurred:', error);
 
-  // Domain validation errors (from CodexPrompt, etc.)
+  // Domain validation errors
   if (error.message.includes('must be') || error.message.includes('required')) {
     res.status(400).json({
       error: 'Validation Error',

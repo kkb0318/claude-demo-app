@@ -1,23 +1,6 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-vi.mock('@openai/codex-sdk', () => {
-  return {
-    Codex: vi.fn().mockImplementation((options: Record<string, unknown>) => ({
-      options,
-      startThread: vi.fn().mockReturnValue({
-        id: 'thread',
-        run: vi.fn()
-      }),
-      resumeThread: vi.fn().mockReturnValue({
-        id: 'thread',
-        run: vi.fn()
-      })
-    }))
-  };
-});
+import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
-  createCodexClient,
   loadCodexEnvironment,
   resetCodexEnvironmentCache
 } from './codex.config';
@@ -48,17 +31,6 @@ describe('codex.config', () => {
       apiKey: 'openai-key',
       baseUrl: undefined
     });
-  });
-
-  it('reuses the same Codex client instance', () => {
-    const environment = loadCodexEnvironment({
-      CODEX_API_KEY: 'key'
-    } as NodeJS.ProcessEnv);
-
-    const firstClient = createCodexClient(environment);
-    const secondClient = createCodexClient(environment);
-
-    expect(secondClient).toBe(firstClient);
   });
 
   it('throws helpful error when no API key is provided', () => {

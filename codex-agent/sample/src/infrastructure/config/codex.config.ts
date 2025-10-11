@@ -1,10 +1,6 @@
 import { config as loadEnv } from 'dotenv';
 import { z } from 'zod';
 
-import { Codex } from '@openai/codex-sdk';
-
-import { CodexSdkClient } from '../adapters/codex-sdk.client';
-
 const envSchema = z.object({
   CODEX_API_KEY: z
     .string()
@@ -19,7 +15,6 @@ export type CodexEnvironment = {
 };
 
 let cachedEnvironment: CodexEnvironment | undefined;
-let cachedClient: CodexSdkClient | undefined;
 
 export function loadCodexEnvironment(env: NodeJS.ProcessEnv = process.env): CodexEnvironment {
   if (!cachedEnvironment) {
@@ -47,19 +42,6 @@ export function loadCodexEnvironment(env: NodeJS.ProcessEnv = process.env): Code
   return cachedEnvironment;
 }
 
-export function createCodexClient(environment = loadCodexEnvironment()): CodexSdkClient {
-  if (!cachedClient) {
-    const codex = new Codex({
-      apiKey: environment.apiKey,
-      baseUrl: environment.baseUrl
-    });
-    cachedClient = new CodexSdkClient(codex);
-  }
-
-  return cachedClient;
-}
-
 export function resetCodexEnvironmentCache(): void {
   cachedEnvironment = undefined;
-  cachedClient = undefined;
 }
