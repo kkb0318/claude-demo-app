@@ -1,0 +1,13 @@
+{
+  "language": "typescript",
+  "app": "pnpm run build && node main.js",
+  "projectId": "simple-web-hosting-ts",
+  "terraformProviders": [
+    "aws@~>5.0"
+  ],
+  "codeMakerOutput": "generated",
+  "context": {
+    "excludeStackIdFromLogicalIds": "true",
+    "allowSepCharsInLogicalIds": "true"
+  }
+}

@@ -1,0 +1,12 @@
+# S3 Bucket Name (must be globally unique)
+bucket_name = "my-website-bucket-12345"
+
+# Environment
+environment = "dev"
+
+# Default root object
+default_root_object = "index.html"
+
+# CloudFront Price Class
+# Options: PriceClass_100, PriceClass_200, PriceClass_All
+cloudfront_price_class = "PriceClass_100"
