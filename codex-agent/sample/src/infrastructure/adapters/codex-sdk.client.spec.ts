@@ -19,11 +19,12 @@ describe('CodexSdkClient', () => {
 
     const client = new CodexSdkClient(codex);
 
-    const wrappedThread = client.startThread();
+    const returnedThread = client.startThread();
     expect(codex.startThread).toHaveBeenCalled();
-    expect(wrappedThread.id).toBe('thread-1');
-  await wrappedThread.run('hello');
-  expect(thread.run).toHaveBeenCalledWith('hello', undefined);
+    expect(returnedThread).toBe(thread);
+    expect(returnedThread.id).toBe('thread-1');
+    await returnedThread.run('hello');
+    expect(thread.run).toHaveBeenCalledWith('hello');
   });
 
   it('wraps resumeThread', async () => {
@@ -35,9 +36,10 @@ describe('CodexSdkClient', () => {
 
     const client = new CodexSdkClient(codex);
 
-    const wrappedThread = client.resumeThread('thread-99');
-  expect(codex.resumeThread).toHaveBeenCalledWith('thread-99', undefined);
-  await wrappedThread.run('again');
-  expect(thread.run).toHaveBeenCalledWith('again', undefined);
+    const returnedThread = client.resumeThread('thread-99');
+    expect(codex.resumeThread).toHaveBeenCalledWith('thread-99', undefined);
+    expect(returnedThread).toBe(thread);
+    await returnedThread.run('again');
+    expect(thread.run).toHaveBeenCalledWith('again');
   });
 });

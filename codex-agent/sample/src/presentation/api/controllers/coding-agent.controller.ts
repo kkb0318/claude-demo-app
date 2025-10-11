@@ -1,9 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
 
-import { CodingAgentRunner } from '@application/services/coding-agent';
-import type { CommandRunner } from '@application/ports/command-runner.port';
-import type { CodexThreadRunner } from '@application/ports/codex-thread-runner.port';
+import { Codex } from '@openai/codex-sdk';
+import { SimpleCodexAgent } from '@infrastructure/agents/simple-codex-agent';
 import { prepareWorkspace } from '@infrastructure/system/workspace';
+import { GenerateAppUseCase } from '@application/use-cases/generate-app.use-case';
+import { loadCodexEnvironment } from '@infrastructure/config/codex.config';
 
 import type {
   GenerateAppRequest,
@@ -12,14 +13,12 @@ import type {
 
 /**
  * Controller for code generation agent API
- * Follows Clean Architecture principles - handles HTTP concerns
- * and delegates business logic to the application layer
+ * Following Clean Architecture: delegates to application service
  */
 export class CodingAgentController {
-  constructor(
-    private readonly threadRunner: CodexThreadRunner,
-    private readonly commandRunner: CommandRunner
-  ) {}
+  constructor() {
+    // Stateless controller - services are created per request
+  }
 
   /**
    * POST /api/generate
@@ -31,22 +30,24 @@ export class CodingAgentController {
     next: NextFunction
   ): Promise<void> {
     try {
-      const { prompt, maxIterations = 8 } = req.body;
+      const { prompt } = req.body;
 
-      // Prepare workspace for this request
+      // Prepare workspace for this request (copies template project)
       const workspace = await prepareWorkspace();
 
-      // Create and run agent
-      const agent = new CodingAgentRunner(
-        this.threadRunner,
-        workspace,
-        this.commandRunner
-      );
+      // Create use case with the prepared workspace
+      const environment = loadCodexEnvironment();
+      const codex = new Codex({
+        apiKey: environment.apiKey,
+        baseUrl: environment.baseUrl
+      });
+      const agent = new SimpleCodexAgent(codex);
+      const useCase = new GenerateAppUseCase(agent);
 
-      const result = await agent.run({
+      // Execute use case
+      const result = await useCase.execute({
         task: prompt,
-        maxIterations,
-        enforceRequiredCommands: true
+        workspaceDir: workspace.rootDir
       });
 
       // Return successful response
@@ -55,7 +56,7 @@ export class CodingAgentController {
         message: 'Application generated successfully',
         workspaceId: workspace.rootDir,
         summary: result.summary,
-        iterations: result.iterations.length
+        iterations: result.statistics.filesModified + result.statistics.commandsExecuted
       });
     } catch (error) {
       next(error);

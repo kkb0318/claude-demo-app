@@ -1,13 +1,14 @@
-import { loadCodexEnvironment, createCodexClient } from '@infrastructure/config/codex.config';
-import { CodexThreadService } from '@infrastructure/adapters/codex-thread-service';
-import { prepareWorkspace } from '@infrastructure/system/workspace';
-import { ShellCommandRunner } from '@infrastructure/system/command-runner';
-import { CodingAgentRunner } from '@application/services/coding-agent';
+import { Codex } from '@openai/codex-sdk';
+import { SimpleCodexAgent } from '@infrastructure/agents/simple-codex-agent';
+import { prepareWorkspace, FileSystemWorkspace } from '@infrastructure/system/workspace';
+import { GenerateAppUseCase } from '@application/use-cases/generate-app.use-case';
+import { loadCodexEnvironment } from '@infrastructure/config/codex.config';
 import { pathToFileURL } from 'node:url';
+import path from 'node:path';
 
 interface CliOptions {
   task: string;
-  maxIterations: number;
+  workspaceDir?: string;
 }
 
 function parseArgs(argv: string[]): CliOptions {
@@ -16,66 +17,52 @@ function parseArgs(argv: string[]): CliOptions {
   }
 
   const task = argv.slice(2).join(' ');
-  const maxIterationsEnv = process.env.AGENT_MAX_ITERATIONS;
-  const maxIterations = maxIterationsEnv ? Number.parseInt(maxIterationsEnv, 10) : 8;
   return {
     task,
-    maxIterations: Number.isNaN(maxIterations) ? 8 : maxIterations
+    workspaceDir: process.env.WORKSPACE_DIR
   };
 }
 
 export async function runCodingAgentCli(): Promise<void> {
   const options = parseArgs(process.argv);
+  
+  // Infrastructure layer: 依存関係の初期化
   const environment = loadCodexEnvironment();
-  const client = createCodexClient(environment);
-  const threadRunner = new CodexThreadService(client);
-  const workspace = await prepareWorkspace();
-  // const workspace = new FileSystemWorkspace(process.cwd());
-  const commandRunner = new ShellCommandRunner(workspace.rootDir, [
-    'npm install',
-    'npm run dev',
-    'npm run build',
-    'npm run start',
-    'npm run lint',
-    'npm test',
-    'curl http://localhost:3000',
-    'curl http://localhost:3000/api/health'
-  ]);
-  const agent = new CodingAgentRunner(threadRunner, workspace, commandRunner);
+  const codex = new Codex({
+    apiKey: environment.apiKey,
+    baseUrl: environment.baseUrl
+  });
+  const agent = new SimpleCodexAgent(codex);
+
+  // ワークスペースの準備（テンプレートプロジェクトをコピー）
+  const workspace = options.workspaceDir 
+    ? new FileSystemWorkspace(path.resolve(process.cwd(), options.workspaceDir))
+    : await prepareWorkspace();
+
+  // Application layer: ユースケースの初期化
+  const useCase = new GenerateAppUseCase(agent);
 
   console.log(`Starting coding agent for task: ${options.task}`);
   console.log(`Workspace root: ${workspace.rootDir}`);
-  const result = await agent.run({
-    task: options.task,
-    maxIterations: options.maxIterations
-  });
 
-  console.log('\nAgent summary:');
-  console.log(result.summary);
+  try {
+    // ユースケースの実行
+    const result = await useCase.execute({
+      task: options.task,
+      workspaceDir: workspace.rootDir
+    });
 
-  console.log('\nIteration details:');
-  for (const iteration of result.iterations) {
-    console.log(`\nIteration ${iteration.iteration}`);
-    console.log('Prompt sent to Codex:');
-    console.log(iteration.requestPrompt);
-    console.log('\nAgent response:');
-    console.log(iteration.responseText);
-    if (iteration.commandResults.length > 0) {
-      console.log('\nCommand results:');
-      for (const command of iteration.commandResults) {
-        console.log(`- ${command.command} -> ${command.exitCode}`);
-        if (command.stdout) {
-          console.log(`stdout:\n${command.stdout}`);
-        }
-        if (command.stderr) {
-          console.log(`stderr:\n${command.stderr}`);
-        }
-      }
-    }
-  }
-
-  if (result.threadId) {
-    console.log(`\nThread ID: ${result.threadId}`);
+    // 結果の表示
+    console.log('\n✅ Task completed successfully!');
+    console.log(`\n📊 Summary: ${result.summary}`);
+    console.log(`\n🔗 Thread ID: ${result.threadId}`);
+    console.log(`\n📁 Files modified: ${result.statistics.filesModified}`);
+    console.log(`⚡ Commands executed: ${result.statistics.commandsExecuted}`);
+    console.log(`\n📂 Workspace: ${result.workspaceDir}`);
+    
+  } catch (error) {
+    console.error('\n❌ Task failed:', error);
+    process.exit(1);
   }
 }
 

@@ -1,46 +1,37 @@
-import { describe, expect, it, beforeAll, afterAll } from 'vitest';
+import { describe, expect, it, beforeAll, afterAll, vi } from 'vitest';
 import request from 'supertest';
 import type { Application } from 'express';
 
 import { createApp } from '@presentation/api/app';
-import type { CodexThreadRunner } from '@application/ports/codex-thread-runner.port';
-import type { CommandRunner } from '@application/ports/command-runner.port';
-import { CodexCompletion } from '@domain/entities/codex-completion';
 
-class MockThreadRunner implements CodexThreadRunner {
-  async runPrompt() {
-    return {
-      completion: CodexCompletion.create({
-        text: '{"actions":[{"type":"message","text":"Starting"},{"type":"finish","summary":"Test complete"}]}'
+// Mock Codex SDK
+vi.mock('@openai/codex-sdk', () => ({
+  Codex: vi.fn().mockImplementation(() => ({
+    startThread: vi.fn().mockReturnValue({
+      run: vi.fn().mockResolvedValue({
+        finalResponse: 'Test complete',
+        items: [
+          { type: 'message', content: 'Starting' },
+          { type: 'tool_call', tool_name: 'write_file', tool_args: {} }
+        ]
       }),
-      threadId: 'test-thread',
-      usage: null
-    };
-  }
-}
+      id: 'test-thread'
+    })
+  }))
+}));
 
-class MockCommandRunner implements CommandRunner {
-  allowedCommands() {
-    return ['npm install', 'npm test'];
-  }
-
-  async run() {
-    return {
-      command: 'npm install',
-      exitCode: 0,
-      stdout: 'Success',
-      stderr: ''
-    };
-  }
-}
+// Mock workspace
+vi.mock('@infrastructure/system/workspace', () => ({
+  prepareWorkspace: vi.fn().mockResolvedValue({
+    rootDir: '/tmp/test-workspace'
+  })
+}));
 
 describe('API Integration Tests', () => {
   let app: Application;
 
   beforeAll(() => {
-    const mockThreadRunner = new MockThreadRunner();
-    const mockCommandRunner = new MockCommandRunner();
-    app = createApp(mockThreadRunner, mockCommandRunner);
+    app = createApp();
   });
 
   afterAll(() => {

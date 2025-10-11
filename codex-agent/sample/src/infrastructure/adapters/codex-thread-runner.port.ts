@@ -1,22 +1,25 @@
-import type { Usage } from '@openai/codex-sdk';
-
 import type { CodexCompletion } from '@domain/entities/codex-completion';
 import type { CodexPrompt } from '@domain/entities/codex-prompt';
 
+/**
+ * Options for running a prompt in a thread.
+ */
 export interface RunPromptOptions {
   threadId?: string;
 }
 
+/**
+ * Result of running a prompt through Codex.
+ */
 export interface CodexThreadResult {
   completion: CodexCompletion;
-  threadId: string | null;
-  usage: Usage | null;
+  threadId?: string;
 }
 
 /**
- * Port interface for running Codex prompts in a thread context.
- * This follows the Dependency Inversion Principle - the application layer
- * defines the interface, and the infrastructure layer implements it.
+ * Port interface for running Codex prompts in threads.
+ * This is an infrastructure-level port, not a domain port.
+ * It represents the contract between different infrastructure components.
  */
 export interface CodexThreadRunner {
   runPrompt(prompt: CodexPrompt, options?: RunPromptOptions): Promise<CodexThreadResult>;

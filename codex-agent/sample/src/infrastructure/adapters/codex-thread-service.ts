@@ -4,22 +4,26 @@ import type {
   CodexThreadRunner,
   CodexThreadResult,
   RunPromptOptions
-} from '@application/ports/codex-thread-runner.port';
+} from './codex-thread-runner.port';
 
-import type { CodexSdkInterface } from './codex-sdk.interface';
+import type { CodexSdkClient } from './codex-sdk.client';
 
 /**
  * Implementation of CodexThreadRunner port using the Codex SDK.
  * This adapter translates between the application's port interface
- * and the external Codex SDK.
+ * and the external Codex SDK via CodexSdkClient.
+ * 
+ * Note: Depends on concrete class CodexSdkClient, which is acceptable
+ * within the infrastructure layer. The DIP boundary is at the application/infrastructure
+ * layer boundary (CodexThreadRunner interface).
  */
 export class CodexThreadService implements CodexThreadRunner {
-  constructor(private readonly sdk: CodexSdkInterface) {}
+  constructor(private readonly client: CodexSdkClient) {}
 
   async runPrompt(prompt: CodexPrompt, options: RunPromptOptions = {}): Promise<CodexThreadResult> {
     const thread = options.threadId
-      ? this.sdk.resumeThread(options.threadId)
-      : this.sdk.startThread();
+      ? this.client.resumeThread(options.threadId)
+      : this.client.startThread();
 
     const turn = await thread.run(prompt.value);
 
@@ -32,8 +36,7 @@ export class CodexThreadService implements CodexThreadRunner {
 
     return {
       completion,
-      threadId: thread.id,
-      usage: turn.usage
+      threadId: thread.id ?? undefined
     };
   }
 }

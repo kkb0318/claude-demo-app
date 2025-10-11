@@ -4,7 +4,7 @@ import { promisify } from 'node:util';
 import type {
   CommandExecutionResult,
   CommandRunner
-} from '@application/ports/command-runner.port';
+} from '@domain/ports/command-runner.port';
 
 const execAsync = promisify(exec);
 

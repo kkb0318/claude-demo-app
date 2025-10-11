@@ -3,7 +3,6 @@ import { z } from 'zod';
 
 import { Codex } from '@openai/codex-sdk';
 
-import type { CodexSdkInterface } from '../adapters/codex-sdk.interface';
 import { CodexSdkClient } from '../adapters/codex-sdk.client';
 
 const envSchema = z.object({
@@ -20,7 +19,7 @@ export type CodexEnvironment = {
 };
 
 let cachedEnvironment: CodexEnvironment | undefined;
-let cachedClient: CodexSdkInterface | undefined;
+let cachedClient: CodexSdkClient | undefined;
 
 export function loadCodexEnvironment(env: NodeJS.ProcessEnv = process.env): CodexEnvironment {
   if (!cachedEnvironment) {
@@ -48,7 +47,7 @@ export function loadCodexEnvironment(env: NodeJS.ProcessEnv = process.env): Code
   return cachedEnvironment;
 }
 
-export function createCodexClient(environment = loadCodexEnvironment()): CodexSdkInterface {
+export function createCodexClient(environment = loadCodexEnvironment()): CodexSdkClient {
   if (!cachedClient) {
     const codex = new Codex({
       apiKey: environment.apiKey,

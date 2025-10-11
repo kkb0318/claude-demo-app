@@ -6,17 +6,12 @@ import { CodingAgentController } from './controllers/coding-agent.controller';
 import { createAgentRoutes } from './routes/agent.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
-import type { CodexThreadRunner } from '@application/ports/codex-thread-runner.port';
-import type { CommandRunner } from '@application/ports/command-runner.port';
 
 /**
  * Create and configure Express application
- * Dependency Injection pattern for clean architecture
+ * Simplified to work with SimpleCodexAgent
  */
-export function createApp(
-  threadRunner: CodexThreadRunner,
-  commandRunner: CommandRunner
-): express.Application {
+export function createApp(): express.Application {
   const app = express();
 
   // Security middlewares
@@ -30,8 +25,8 @@ export function createApp(
   // Custom middlewares
   app.use(requestLogger);
 
-  // Initialize controller
-  const controller = new CodingAgentController(threadRunner, commandRunner);
+  // Initialize controller (no dependencies needed)
+  const controller = new CodingAgentController();
 
   // Routes
   app.use('/api', createAgentRoutes(controller));

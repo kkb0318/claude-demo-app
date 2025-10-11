@@ -4,11 +4,13 @@ import { mkdir, mkdtemp, cp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 
-import type { AgentWorkspace } from '@application/ports/agent-workspace.port';
+import type { AgentWorkspace } from '@domain/ports/agent-workspace.port';
 
+// Directories to exclude from file listings (not from workspace copy)
 const IGNORED_DIRECTORIES = new Set([
-  'node_modules',
+  'node_modules',  // Will be copied but not listed to agent
   '.git',
+  '.next',
   'dist',
   'coverage'
 ]);
@@ -86,7 +88,7 @@ export async function prepareWorkspace(): Promise<FileSystemWorkspace> {
   const root = await mkdtemp(join(tmpdir(), 'coding-agent-demo-'));
   await mkdir(root, { recursive: true });
   
-  // Copy template project as base
+  // Copy template project as base (excluding node_modules)
   // Navigate from sample/src/infrastructure/system/workspace.ts to codex-agent/template-project/my-app
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = dirname(__filename);
@@ -95,11 +97,30 @@ export async function prepareWorkspace(): Promise<FileSystemWorkspace> {
   await cp(templatePath, root, { 
     recursive: true,
     filter: (src) => {
-      // Skip node_modules, .next, and other build artifacts
+      // Exclude node_modules, .next, and other build artifacts
       const relativePath = relative(templatePath, src);
-      return !relativePath.includes('node_modules') && 
-             !relativePath.includes('.next') &&
-             !relativePath.startsWith('.');
+      
+      // Allow the root directory itself
+      if (relativePath === '') {
+        return true;
+      }
+      
+      // Exclude node_modules directory
+      if (relativePath === 'node_modules' || relativePath.startsWith('node_modules/')) {
+        return false;
+      }
+      
+      // Exclude build artifacts
+      if (relativePath.includes('.next') || relativePath.includes('dist') || relativePath.includes('coverage')) {
+        return false;
+      }
+      
+      // Exclude hidden files except .gitignore, .env.example, etc.
+      if (relativePath.startsWith('.') && !relativePath.match(/^\.(gitignore|env\.example|eslintrc|prettierrc)/)) {
+        return false;
+      }
+      
+      return true;
     }
   });
 
