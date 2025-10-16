@@ -20,7 +20,39 @@
 - `pnpm build` — TypeScript コンパイル。
 
 ### CLI Mode
-- `pnpm agent "<task description>"` — CLI版: Codex を用いた自動コーディングエージェント体験。
+
+#### アプリケーション生成 & デプロイ
+```fish
+# 基本的な使用方法（コード生成のみ）
+pnpm agent "create a simple todo app"
+
+# CloudFrontへのフルデプロイ
+PROVISION=true DEPLOY=true \
+  BUCKET_NAME="my-app-$(date +%s)" \
+  AWS_REGION="ap-northeast-1" \
+  pnpm agent "create a hello world app"
+```
+
+**環境変数:**
+- `PROVISION=true` - AWS インフラ（S3 + CloudFront）のプロビジョニングを有効化
+- `DEPLOY=true` - S3へのデプロイを有効化
+- `BUCKET_NAME` - 使用するS3バケット名
+- `AWS_REGION` - AWSリージョン（デフォルト: ap-northeast-1）
+- `AWS_PROFILE` - 使用するAWSプロファイル（デフォルト: agent-galaxy）
+
+#### インフラストラクチャの削除
+```fish
+# 作成したAWSリソースを削除
+BUCKET_NAME="my-app-1234567890" \
+  AWS_REGION="ap-northeast-1" \
+  pnpm destroy
+
+# ワークスペースディレクトリを指定する場合（Terraformの状態ファイルがある場合）
+WORKSPACE_DIR="/var/folders/.../coding-agent-demo-abc123" \
+  BUCKET_NAME="my-app-1234567890" \
+  pnpm destroy
+```
+
 
 ### API Server Mode
 - `pnpm api` — REST API サーバーの起動 (ポート: 3001)
@@ -163,6 +195,51 @@ curl -X POST http://localhost:3001/api/generate \
 }
 ```
 
+##### Destroy Infrastructure
+```bash
+curl -X POST http://localhost:3001/api/infrastructure/destroy \
+  -H "Content-Type: application/json" \
+  -d '{
+    "bucketName": "demo-app-1760359834",
+    "awsRegion": "ap-northeast-1",
+    "workspaceDir": "/var/folders/bg/w243fwkn2bd2c8r0xmd_dtvh0000gn/T/coding-agent-demo-FWEsF2"
+  }'
+```
+
+**Request Body:**
+```typescript
+{
+  bucketName: string;    // Required: S3バケット名
+  awsRegion: string;     // Required: AWSリージョン (例: ap-northeast-1)
+  workspaceDir: string;  // Required: Terraformステートファイルが保存されているワークスペースディレクトリ
+  awsProfile?: string;   // Optional: AWSプロファイル (デフォルト: agent-galaxy)
+}
+```
+
+**Response (Success):**
+```json
+{
+  "success": true,
+  "message": "Infrastructure destroyed successfully"
+}
+```
+
+**Response (Error - Validation):**
+```json
+{
+  "success": false,
+  "message": "bucketName must contain only lowercase letters, numbers, and hyphens"
+}
+```
+
+**Response (Error - Infrastructure):**
+```json
+{
+  "success": false,
+  "message": "Failed to destroy CloudFront distribution"
+}
+```
+
 #### API機能
 
 - ✅ **バリデーション**: Zodスキーマによるリクエスト検証
@@ -170,3 +247,64 @@ curl -X POST http://localhost:3001/api/generate \
 - ✅ **セキュリティ**: Helmet, CORS による保護
 - ✅ **ロギング**: リクエストの自動ログ出力
 - ✅ **Clean Architecture**: プレゼンテーション層として実装
+
+### 3. Docker Mode (NEW)
+
+アプリケーションをDockerコンテナとして実行できます。
+
+#### Docker イメージのビルド
+
+```bash
+docker build -t coding-agent-api:latest .
+```
+
+#### コンテナの起動
+
+```bash
+docker run -d \
+  --name coding-agent-api \
+  -p 3001:3001 \
+  -e OPENAI_API_KEY="your-api-key" \
+  -e AWS_ACCESS_KEY_ID="your-aws-access-key" \
+  -e AWS_SECRET_ACCESS_KEY="your-aws-secret-key" \
+  -e AWS_REGION="ap-northeast-1" \
+  coding-agent-api:latest
+```
+
+#### Health Check
+
+```bash
+curl http://localhost:3001/api/health
+```
+
+詳細は [DOCKER.md](./DOCKER.md) を参照してください。
+
+### 4. Azure Deployment (NEW)
+
+Azure Container Instances を使用して、プライベートネットワーク内でAPIサーバーをデプロイできます。
+
+#### 特徴
+- ✅ **Private Access**: VNet内からのみアクセス可能（パブリックIPなし）
+- ✅ **Container Instances**: サーバーレスコンテナ実行環境
+- ✅ **Infrastructure as Code**: Terraform でインフラ管理
+- ✅ **Health Probes**: Liveness/Readiness チェック
+- ✅ **Secure Secrets**: 環境変数として安全に保存
+
+#### デプロイ手順
+
+```bash
+cd ../setup/azure
+
+# terraform.tfvars の設定
+cp terraform.tfvars.example terraform.tfvars
+vi terraform.tfvars
+
+# インフラのデプロイ
+terraform init
+terraform plan
+terraform apply
+```
+
+詳細は [setup/azure/README.md](../setup/azure/README.md) を参照してください。
+
+完全な動作確認手順は [DEPLOYMENT_VERIFICATION.md](../DEPLOYMENT_VERIFICATION.md) を参照してください。
