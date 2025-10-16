@@ -27,6 +27,17 @@ vi.mock('@infrastructure/system/workspace', () => ({
   })
 }));
 
+// Mock CDKTFProvisioner
+vi.mock('@infrastructure/cdktf/cdktf-provisioner', () => ({
+  CDKTFProvisioner: vi.fn().mockImplementation(() => ({
+    destroy: vi.fn().mockResolvedValue({
+      success: true,
+      outputs: {},
+      message: 'Infrastructure destroyed successfully'
+    })
+  }))
+}));
+
 describe('API Integration Tests', () => {
   let app: Application;
 
@@ -109,6 +120,77 @@ describe('API Integration Tests', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('success');
+    });
+  });
+
+  describe('POST /api/infrastructure/destroy', () => {
+    it('should destroy infrastructure with valid request', async () => {
+      const response = await request(app)
+        .post('/api/infrastructure/destroy')
+        .send({
+          bucketName: 'test-bucket-123',
+          awsRegion: 'ap-northeast-1',
+          workspaceDir: '/tmp/test-workspace'
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body).toMatchObject({
+        success: true,
+        message: 'Infrastructure destroyed successfully'
+      });
+    });
+
+    it('should return 400 for invalid bucketName', async () => {
+      const response = await request(app)
+        .post('/api/infrastructure/destroy')
+        .send({
+          bucketName: 'Invalid_Bucket!',
+          awsRegion: 'ap-northeast-1',
+          workspaceDir: '/tmp/test-workspace'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('bucketName');
+    });
+
+    it('should return 400 for missing bucketName', async () => {
+      const response = await request(app)
+        .post('/api/infrastructure/destroy')
+        .send({
+          awsRegion: 'ap-northeast-1',
+          workspaceDir: '/tmp/test-workspace'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('bucketName');
+    });
+
+    it('should return 400 for missing awsRegion', async () => {
+      const response = await request(app)
+        .post('/api/infrastructure/destroy')
+        .send({
+          bucketName: 'test-bucket-123',
+          workspaceDir: '/tmp/test-workspace'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('awsRegion');
+    });
+
+    it('should return 400 for missing workspaceDir', async () => {
+      const response = await request(app)
+        .post('/api/infrastructure/destroy')
+        .send({
+          bucketName: 'test-bucket-123',
+          awsRegion: 'ap-northeast-1'
+        });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body.message).toContain('workspaceDir');
     });
   });
 });

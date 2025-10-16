@@ -3,7 +3,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 
 import { CodingAgentController } from './controllers/coding-agent.controller';
+import { InfrastructureController } from './controllers/infrastructure.controller';
 import { createAgentRoutes } from './routes/agent.routes';
+import { createInfrastructureRoutes } from './routes/infrastructure.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
 
@@ -25,11 +27,14 @@ export function createApp(): express.Application {
   // Custom middlewares
   app.use(requestLogger);
 
-  // Initialize controller (no dependencies needed)
-  const controller = new CodingAgentController();
+  // Initialize controllers
+  // Note: Controllers are stateless - dependencies are created per request
+  const codingAgentController = new CodingAgentController();
+  const infrastructureController = new InfrastructureController();
 
   // Routes
-  app.use('/api', createAgentRoutes(controller));
+  app.use('/api', createAgentRoutes(codingAgentController));
+  app.use('/api/infrastructure', createInfrastructureRoutes(infrastructureController));
 
   // Root endpoint
   app.get('/', (_req, res) => {
@@ -38,7 +43,8 @@ export function createApp(): express.Application {
       version: '1.0.0',
       endpoints: {
         health: 'GET /api/health',
-        generate: 'POST /api/generate'
+        generate: 'POST /api/generate',
+        destroyInfrastructure: 'POST /api/infrastructure/destroy'
       }
     });
   });
