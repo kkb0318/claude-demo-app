@@ -4,8 +4,10 @@ import helmet from 'helmet';
 
 import { CodingAgentController } from './controllers/coding-agent.controller';
 import { InfrastructureController } from './controllers/infrastructure.controller';
+import { createRootRoutes } from './routes/root.routes';
 import { createAgentRoutes } from './routes/agent.routes';
 import { createInfrastructureRoutes } from './routes/infrastructure.routes';
+import { createOpenAPIRoutes } from './routes/openapi.routes';
 import { errorHandler } from './middlewares/error.middleware';
 import { requestLogger } from './middlewares/logger.middleware';
 
@@ -33,21 +35,10 @@ export function createApp(): express.Application {
   const infrastructureController = new InfrastructureController();
 
   // Routes
+  app.use('/', createRootRoutes());
   app.use('/api', createAgentRoutes(codingAgentController));
   app.use('/api/infrastructure', createInfrastructureRoutes(infrastructureController));
-
-  // Root endpoint
-  app.get('/', (_req, res) => {
-    res.json({
-      service: 'Coding Agent API',
-      version: '1.0.0',
-      endpoints: {
-        health: 'GET /api/health',
-        generate: 'POST /api/generate',
-        destroyInfrastructure: 'POST /api/infrastructure/destroy'
-      }
-    });
-  });
+  app.use('/api', createOpenAPIRoutes());
 
   // Error handling (must be last)
   app.use(errorHandler);

@@ -1,6 +1,6 @@
-import { S3Client } from '@aws-sdk/client-s3';
-import { S3SyncClient } from 's3-sync-client';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import * as fs from 'fs';
+import * as path from 'path';
 import type {
   ApplicationDeployer,
   DeployConfig,
@@ -8,27 +8,51 @@ import type {
 } from '@domain/ports/application-deployer.port';
 
 /**
+ * Get MIME type based on file extension
+ */
+function getMimeType(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const mimeTypes: Record<string, string> = {
+    '.html': 'text/html; charset=utf-8',
+    '.css': 'text/css; charset=utf-8',
+    '.js': 'application/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.svg': 'image/svg+xml',
+    '.ico': 'image/x-icon',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.eot': 'application/vnd.ms-fontobject',
+    '.txt': 'text/plain; charset=utf-8',
+    '.xml': 'application/xml; charset=utf-8',
+  };
+  return mimeTypes[ext] || 'application/octet-stream';
+}
+
+/**
  * S3 Deployer
  * 
  * Infrastructure layer adapter implementing ApplicationDeployer port
- * using AWS SDK v3 and s3-sync-client.
+ * using AWS SDK v3 with proper Content-Type handling.
  * 
  * Responsibilities:
- * - Upload built application files to S3 bucket
- * - Sync local directory with S3 bucket
- * - Optionally delete removed files from S3
+ * - Upload built application files to S3 bucket with correct MIME types
+ * - Recursively upload all files in a directory
  * - Handle AWS credentials and region configuration
  */
 export class S3Deployer implements ApplicationDeployer {
   async deploy(config: DeployConfig): Promise<DeployResult> {
-    const { sourceDir, bucketName, awsRegion, awsProfile, deleteRemoved } = config;
+    const { sourceDir, bucketName, awsRegion, awsProfile } = config;
 
     // Validate source directory exists
     if (!fs.existsSync(sourceDir)) {
       return {
         success: false,
         filesUploaded: 0,
-        filesDeleted: deleteRemoved ? 0 : undefined,
         message: `Source directory does not exist: ${sourceDir}`,
       };
     }
@@ -39,7 +63,6 @@ export class S3Deployer implements ApplicationDeployer {
       return {
         success: false,
         filesUploaded: 0,
-        filesDeleted: deleteRemoved ? 0 : undefined,
         message: `Source directory is empty: ${sourceDir}`,
       };
     }
@@ -57,52 +80,61 @@ export class S3Deployer implements ApplicationDeployer {
       
       const s3Client = new S3Client(clientConfig);
 
-      // Create sync client
-      const syncClient = new S3SyncClient({ client: s3Client });
-
-      // Count files before sync
-      const filesBefore = this.countFiles(sourceDir);
-
-      // Sync local directory to S3 bucket
-      // Note: s3-sync-client automatically sets Content-Type based on file extension
-      await syncClient.sync(sourceDir, `s3://${bucketName}`, {
-        del: deleteRemoved ?? false,
-      });
+      // Upload all files recursively
+      const uploadedFiles = await this.uploadDirectory(s3Client, sourceDir, bucketName, sourceDir);
 
       return {
         success: true,
-        filesUploaded: filesBefore,
-        filesDeleted: deleteRemoved ? 0 : undefined,
-        message: `Successfully deployed ${filesBefore} files to ${bucketName}`,
+        filesUploaded: uploadedFiles,
+        message: `Successfully deployed ${uploadedFiles} files to ${bucketName}`,
       };
     } catch (error) {
       return {
         success: false,
         filesUploaded: 0,
-        filesDeleted: deleteRemoved ? 0 : undefined,
         message: error instanceof Error ? error.message : 'Unknown deployment error',
       };
     }
   }
 
   /**
-   * Recursively count all files in a directory
+   * Recursively upload directory to S3 with proper Content-Type
    */
-  private countFiles(dirPath: string): number {
-    let count = 0;
-    const items = fs.readdirSync(dirPath);
+  private async uploadDirectory(
+    s3Client: S3Client,
+    localDir: string,
+    bucketName: string,
+    baseDir: string
+  ): Promise<number> {
+    let uploadCount = 0;
+    const items = fs.readdirSync(localDir);
 
     for (const item of items) {
-      const fullPath = `${dirPath}/${item}`;
-      const stat = fs.statSync(fullPath);
+      const localPath = path.join(localDir, item);
+      const stat = fs.statSync(localPath);
 
       if (stat.isDirectory()) {
-        count += this.countFiles(fullPath);
+        // Recursively upload subdirectory
+        uploadCount += await this.uploadDirectory(s3Client, localPath, bucketName, baseDir);
       } else {
-        count++;
+        // Upload file with proper Content-Type
+        const s3Key = path.relative(baseDir, localPath).replace(/\\/g, '/');
+        const fileContent = fs.readFileSync(localPath);
+        const contentType = getMimeType(localPath);
+
+        await s3Client.send(
+          new PutObjectCommand({
+            Bucket: bucketName,
+            Key: s3Key,
+            Body: fileContent,
+            ContentType: contentType,
+          })
+        );
+
+        uploadCount++;
       }
     }
 
-    return count;
+    return uploadCount;
   }
 }

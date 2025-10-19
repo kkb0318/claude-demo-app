@@ -39,7 +39,7 @@ export class InfrastructureController {
         bucketName: dto.bucketName,
         awsRegion: dto.awsRegion,
         workspaceDir: dto.workspaceDir,
-        environment: 'dev', // Match the environment used during creation
+        environment: 'production', // Match the environment used during creation
         defaultRootObject: 'index.html',
         cloudfrontPriceClass: 'PriceClass_All',
         resourcePrefix: '',

@@ -14,11 +14,13 @@ export const errorHandler = (
 ): void => {
   console.error('Error occurred:', error);
 
+  const errorMessage = error?.message || 'An unexpected error occurred';
+
   // Domain validation errors
-  if (error.message.includes('must be') || error.message.includes('required')) {
+  if (errorMessage.includes('must be') || errorMessage.includes('required')) {
     res.status(400).json({
       error: 'Validation Error',
-      message: error.message,
+      message: errorMessage,
       statusCode: 400
     });
     return;
@@ -27,7 +29,7 @@ export const errorHandler = (
   // Default server error
   res.status(500).json({
     error: 'Internal Server Error',
-    message: error.message || 'An unexpected error occurred',
+    message: errorMessage,
     statusCode: 500
   });
 };

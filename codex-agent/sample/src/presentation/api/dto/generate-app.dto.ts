@@ -16,21 +16,28 @@ export type GenerateAppRequest = z.infer<typeof GenerateAppRequestSchema>;
 /**
  * Response DTO for app generation
  */
-export interface GenerateAppResponse {
-  success: boolean;
-  message: string;
-  workspaceId?: string;
-  summary?: string;
-  iterations?: number;
-  error?: string;
-}
+export const GenerateAppResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  workspaceId: z.string().optional(),
+  summary: z.string().optional(),
+  iterations: z.number().optional(),
+  cloudfrontUrl: z.string().optional(),
+  cloudfrontDistributionId: z.string().optional(),
+  s3BucketName: z.string().optional(),
+  error: z.string().optional()
+});
+
+export type GenerateAppResponse = z.infer<typeof GenerateAppResponseSchema>;
 
 /**
  * Error response DTO
  */
-export interface ErrorResponse {
-  error: string;
-  message: string;
-  statusCode: number;
-  details?: unknown;
-}
+export const ErrorResponseSchema = z.object({
+  error: z.string(),
+  message: z.string(),
+  statusCode: z.number(),
+  details: z.unknown().optional()
+});
+
+export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;

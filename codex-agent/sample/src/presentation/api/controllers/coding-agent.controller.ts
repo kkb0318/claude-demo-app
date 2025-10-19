@@ -5,6 +5,8 @@ import { SimpleCodexAgent } from '@infrastructure/agents/simple-codex-agent';
 import { prepareWorkspace } from '@infrastructure/system/workspace';
 import { GenerateAppUseCase } from '@application/use-cases/generate-app.use-case';
 import { loadCodexEnvironment } from '@infrastructure/config/codex.config';
+import { CDKTFProvisioner } from '@infrastructure/cdktf/cdktf-provisioner';
+import { S3Deployer } from '@infrastructure/aws/s3-deployer';
 
 import type {
   GenerateAppRequest,
@@ -42,12 +44,33 @@ export class CodingAgentController {
         baseUrl: environment.baseUrl
       });
       const agent = new SimpleCodexAgent(codex);
-      const useCase = new GenerateAppUseCase(agent);
+      
+      // Create infrastructure provisioner and deployer
+      const provisioner = new CDKTFProvisioner();
+      const deployer = new S3Deployer();
+      
+      const useCase = new GenerateAppUseCase(agent, provisioner, deployer);
 
-      // Execute use case
+      // Generate unique bucket name
+      const timestamp = Date.now();
+      const bucketName = `codex-app-${timestamp}`;
+      const awsRegion = process.env.AWS_REGION || 'ap-northeast-1';
+
+      // Execute use case with infrastructure provisioning
       const result = await useCase.execute({
         task: prompt,
-        workspaceDir: workspace.rootDir
+        workspaceDir: workspace.rootDir,
+        infrastructureConfig: {
+          bucketName,
+          awsRegion,
+          environment: 'production',
+          workspaceDir: workspace.rootDir
+        },
+        deployConfig: {
+          bucketName,
+          sourceDir: `${workspace.rootDir}/out`,
+          awsRegion
+        }
       });
 
       // Return successful response
@@ -56,7 +79,10 @@ export class CodingAgentController {
         message: 'Application generated successfully',
         workspaceId: workspace.rootDir,
         summary: result.summary,
-        iterations: result.statistics.filesModified + result.statistics.commandsExecuted
+        iterations: result.statistics.filesModified + result.statistics.commandsExecuted,
+        cloudfrontUrl: result.infrastructure?.outputs.cloudfrontUrl,
+        cloudfrontDistributionId: result.infrastructure?.outputs.cloudfrontDistributionId,
+        s3BucketName: result.infrastructure?.outputs.s3BucketName
       });
     } catch (error) {
       next(error);

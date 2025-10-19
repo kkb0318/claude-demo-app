@@ -1,53 +1,48 @@
+import { z } from 'zod';
+
 /**
- * DTO for destroying infrastructure
+ * Request schema for destroying infrastructure
+ */
+export const DestroyInfrastructureRequestSchema = z.object({
+  bucketName: z
+    .string()
+    .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'bucketName must contain only lowercase letters, numbers, and hyphens'),
+  awsRegion: z
+    .string()
+    .regex(/^[a-z]{2}-[a-z]+-\d{1}$/, 'awsRegion must be a valid AWS region format (e.g., ap-northeast-1)'),
+  workspaceDir: z.string().min(1, 'workspaceDir is required'),
+  awsProfile: z.string().default('agent-galaxy').optional()
+});
+
+export type DestroyInfrastructureRequest = z.infer<typeof DestroyInfrastructureRequestSchema>;
+
+/**
+ * Response schema for destroying infrastructure
+ */
+export const DestroyInfrastructureResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  bucketName: z.string().optional(),
+  region: z.string().optional()
+});
+
+export type DestroyInfrastructureResponse = z.infer<typeof DestroyInfrastructureResponseSchema>;
+
+/**
+ * Legacy DTO for destroying infrastructure (for backward compatibility)
+ * @deprecated Use DestroyInfrastructureRequest type instead
  */
 export class DestroyInfrastructureDto {
-  /**
-   * S3 bucket name to destroy
-   */
   bucketName!: string;
-
-  /**
-   * AWS region where the infrastructure is deployed
-   */
   awsRegion!: string;
-
-  /**
-   * Workspace directory containing Terraform state
-   */
   workspaceDir!: string;
-
-  /**
-   * AWS profile to use (default: agent-galaxy)
-   */
   awsProfile: string = 'agent-galaxy';
 
-  /**
-   * Validate the DTO
-   * @returns Array of validation error messages (empty if valid)
-   */
   validate(): string[] {
-    const errors: string[] = [];
-
-    // Validate bucketName
-    if (!this.bucketName) {
-      errors.push('bucketName is required');
-    } else if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(this.bucketName)) {
-      errors.push('bucketName must contain only lowercase letters, numbers, and hyphens');
+    const result = DestroyInfrastructureRequestSchema.safeParse(this);
+    if (result.success) {
+      return [];
     }
-
-    // Validate awsRegion
-    if (!this.awsRegion) {
-      errors.push('awsRegion is required');
-    } else if (!/^[a-z]{2}-[a-z]+-\d{1}$/.test(this.awsRegion)) {
-      errors.push('awsRegion must be a valid AWS region format (e.g., ap-northeast-1)');
-    }
-
-    // Validate workspaceDir
-    if (!this.workspaceDir) {
-      errors.push('workspaceDir is required');
-    }
-
-    return errors;
+    return result.error.errors.map((err) => `${err.path.join('.')}: ${err.message}`);
   }
 }
