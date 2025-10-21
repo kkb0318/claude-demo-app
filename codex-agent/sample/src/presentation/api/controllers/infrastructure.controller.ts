@@ -30,14 +30,15 @@ export class InfrastructureController {
         return;
       }
 
-      // Create provisioner for this request
-      const awsProfile = dto.awsProfile || process.env.AWS_PROFILE || 'agent-galaxy';
+      // Create provisioner for this request with fixed values
+      const awsProfile = 'agent-galaxy';
+      const awsRegion = 'ap-northeast-1';
       const provisioner = new CDKTFProvisioner(awsProfile);
 
       // Execute destroy operation
       const result = await provisioner.destroy({
         bucketName: dto.bucketName,
-        awsRegion: dto.awsRegion,
+        awsRegion: awsRegion,
         workspaceDir: dto.workspaceDir,
         environment: 'production', // Match the environment used during creation
         defaultRootObject: 'index.html',

@@ -1,4 +1,5 @@
 import { Router, type Request, type Response } from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { generateOpenAPISchema } from '../openapi/schema';
 
 /**
@@ -77,6 +78,17 @@ export function createOpenAPIRoutes(): Router {
       });
     }
   });
+
+  /**
+   * GET /api/docs
+   * Swagger UI Documentation Interface
+   */
+  router.use('/docs', swaggerUi.serve);
+  router.get('/docs', swaggerUi.setup(undefined, {
+    swaggerOptions: {
+      url: '/api/openapi.json'
+    }
+  }));
 
   /**
    * GET /api/openapi.yaml

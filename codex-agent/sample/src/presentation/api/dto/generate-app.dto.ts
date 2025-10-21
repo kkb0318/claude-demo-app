@@ -19,12 +19,12 @@ export type GenerateAppRequest = z.infer<typeof GenerateAppRequestSchema>;
 export const GenerateAppResponseSchema = z.object({
   success: z.boolean(),
   message: z.string(),
-  workspaceId: z.string().optional(),
+  workspaceDir: z.string().optional(),
   summary: z.string().optional(),
   iterations: z.number().optional(),
   cloudfrontUrl: z.string().optional(),
   cloudfrontDistributionId: z.string().optional(),
-  s3BucketName: z.string().optional(),
+  bucketName: z.string().optional(),
   error: z.string().optional()
 });
 

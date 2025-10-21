@@ -15,9 +15,37 @@ import { openAPIRoutes } from './types';
 
 /**
  * Helper function to convert Zod schema to OpenAPI SchemaObject
+ * Converts type arrays (OpenAPI 3.1) to strings (OpenAPI 3.0)
  */
 function toOpenAPISchema(zodSchema: z.ZodType): SchemaObject {
-  return generateSchema(zodSchema) as SchemaObject;
+  const schema = generateSchema(zodSchema) as SchemaObject;
+  return normalizeTypeFields(schema);
+}
+
+/**
+ * Recursively normalize type fields from arrays to strings for OpenAPI 3.0 compatibility
+ */
+function normalizeTypeFields(obj: any): any {
+  if (!obj || typeof obj !== 'object') {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map(normalizeTypeFields);
+  }
+
+  const result: any = {};
+  for (const [key, value] of Object.entries(obj)) {
+    if (key === 'type' && Array.isArray(value) && value.length === 1) {
+      // Convert single-element type array to string
+      result[key] = value[0];
+    } else if (typeof value === 'object') {
+      result[key] = normalizeTypeFields(value);
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 /**

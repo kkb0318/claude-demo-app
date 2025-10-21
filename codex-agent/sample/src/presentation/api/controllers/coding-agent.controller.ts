@@ -77,12 +77,12 @@ export class CodingAgentController {
       res.status(200).json({
         success: true,
         message: 'Application generated successfully',
-        workspaceId: workspace.rootDir,
+        workspaceDir: workspace.rootDir,
         summary: result.summary,
         iterations: result.statistics.filesModified + result.statistics.commandsExecuted,
         cloudfrontUrl: result.infrastructure?.outputs.cloudfrontUrl,
         cloudfrontDistributionId: result.infrastructure?.outputs.cloudfrontDistributionId,
-        s3BucketName: result.infrastructure?.outputs.s3BucketName
+        bucketName: result.infrastructure?.outputs.s3BucketName
       });
     } catch (error) {
       next(error);

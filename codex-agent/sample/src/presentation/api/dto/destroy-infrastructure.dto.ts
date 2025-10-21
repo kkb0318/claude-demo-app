@@ -2,16 +2,14 @@ import { z } from 'zod';
 
 /**
  * Request schema for destroying infrastructure
+ * awsRegion is fixed to 'ap-northeast-1'
+ * awsProfile is fixed to 'agent-galaxy'
  */
 export const DestroyInfrastructureRequestSchema = z.object({
   bucketName: z
     .string()
     .regex(/^[a-z0-9][a-z0-9-]*[a-z0-9]$/, 'bucketName must contain only lowercase letters, numbers, and hyphens'),
-  awsRegion: z
-    .string()
-    .regex(/^[a-z]{2}-[a-z]+-\d{1}$/, 'awsRegion must be a valid AWS region format (e.g., ap-northeast-1)'),
-  workspaceDir: z.string().min(1, 'workspaceDir is required'),
-  awsProfile: z.string().default('agent-galaxy').optional()
+  workspaceDir: z.string().min(1, 'workspaceDir is required')
 });
 
 export type DestroyInfrastructureRequest = z.infer<typeof DestroyInfrastructureRequestSchema>;
@@ -34,9 +32,7 @@ export type DestroyInfrastructureResponse = z.infer<typeof DestroyInfrastructure
  */
 export class DestroyInfrastructureDto {
   bucketName!: string;
-  awsRegion!: string;
   workspaceDir!: string;
-  awsProfile: string = 'agent-galaxy';
 
   validate(): string[] {
     const result = DestroyInfrastructureRequestSchema.safeParse(this);
