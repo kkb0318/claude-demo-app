@@ -1,0 +1,12 @@
+# AWS Region
+aws_region = "ap-northeast-1"
+
+# S3 Bucket for Terraform State
+bucket_name = "your-unique-bucket-name-tfstate"
+
+# IAM User Configuration
+create_iam_user = true
+iam_user_name   = "deploy-app-agent-user"
+
+# Environment
+environment = "dev"

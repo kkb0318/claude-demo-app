@@ -10,13 +10,17 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.aws_region
-  profile = "agent-galaxy"
+  region = var.aws_region
+
+
+  # Use a specific AWS CLI profile
+  profile = var.aws_profile
 
   default_tags {
     tags = {
-      ManagedBy = "Terraform"
-      Purpose   = "TFState Backend"
+      ManagedBy   = "Terraform"
+      Project     = "DeployAppAgent"
+      Environment = var.environment
     }
   }
 }
